@@ -18,14 +18,14 @@ summary_length = st.slider("Summary Length (approx words)", 30, 300, 100)
 # --- Model selector ---
 selected_model_name = st.selectbox(
     "Select Model",
-    ["LLaMA 3 (8B)", "LLaMA 3 (70B)", "Mixtral (8x7B)"]
+    ["LLaMA 3 (8B)", "LLaMA 3 (70B)", "Gemma2 (9B)"]
 )
 
 # Map readable name to Groq model ID
 model_map = {
     "LLaMA 3 (8B)": "llama3-8b-8192",
     "LLaMA 3 (70B)": "llama3-70b-8192",
-    "Mixtral (8x7B)": "gemma2-9b-it"
+    "Gemma2 (9B)": "gemma2-9b-it"
 }
 selected_model = model_map[selected_model_name]
 
