@@ -7,12 +7,14 @@ st.set_page_config(page_title="AI Assistant", layout="centered")
 # --- SESSION STATE ---
 if "output" not in st.session_state:
     st.session_state.output = ""
+if "feature" not in st.session_state:
+    st.session_state.feature = "Text Summarizer"
 
 # --- Model Mapping ---
 model_map = {
-    "LLaMA 3 (8B)": "llama3-8b-8192",
-    "LLaMA 3 (70B)": "llama3-70b-8192",
-    "Gemma2 (9B)": "gemma2-9b-it"
+    "LLaMA 3 (8B) 🧠": "llama3-8b-8192",
+    "LLaMA 3 (70B) 🚀": "llama3-70b-8192",
+    "Gemma2 (9B) 🩺": "gemma2-9b-it"
 }
 
 # --- Header ---
@@ -20,7 +22,14 @@ st.title("🧠 AI Assistant")
 st.markdown("Choose a feature below to get started:")
 
 # --- Feature Selector ---
-feature = st.radio("Choose a Feature", ["Text Summarizer", "Medical Term Explainer"])
+feature = st.radio("Choose a Feature", ["Text Summarizer", "Medical Term Explainer"], index=["Text Summarizer", "Medical Term Explainer"].index(st.session_state.feature))
+st.session_state.feature = feature
+
+# --- Feature Hints ---
+if feature == "Text Summarizer":
+    st.info("This tool helps you summarize long articles, notes, or documents into key points.")
+elif feature == "Medical Term Explainer":
+    st.info("Paste medical reports or test results, and the assistant will explain them in layman's terms.")
 
 # --- Shared Inputs ---
 text_input = st.text_area("Enter Text", placeholder="Paste your content here...", height=200)
