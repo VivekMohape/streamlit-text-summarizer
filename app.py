@@ -25,7 +25,7 @@ selected_model_name = st.selectbox(
 model_map = {
     "LLaMA 3 (8B)": "llama3-8b-8192",
     "LLaMA 3 (70B)": "llama3-70b-8192",
-    "Mixtral (8x7B)": "mixtral-8x7b-32768"
+    "Mixtral (8x7B)": "gemma2-9b-it"
 }
 selected_model = model_map[selected_model_name]
 
