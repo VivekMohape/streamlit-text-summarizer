@@ -15,7 +15,7 @@ st.markdown("Paste your text below, choose a summary length, and click 'Summariz
 
 text_input = st.text_area("Enter Text", placeholder="Paste your text here...", height=200)
 summary_length = st.slider("Summary Length (approx words)", 30, 300, 100)
-selected_model = st.selectbox("Select Model", ["llama3-8b-8192", "gemma-7b-it"])
+selected_model = st.selectbox("Select Model", ["llama3-8b-8192", "llama-3.3-70b-versatile"])
 summarize_button = st.button("Summarize")
 
 # --- Groq API Call ---
