@@ -3,7 +3,7 @@ import requests
 import instructor
 from pydantic import BaseModel
 import json
-import openai  # Added for instructor client
+import openai
 
 # --- CONFIG ---
 st.set_page_config(page_title="AI Assistant", layout="centered")
@@ -25,6 +25,11 @@ model_map = {
 class UserInfo(BaseModel):
     name: str
     age: int
+
+# --- Instructor Client Setup ---
+openai.api_key = st.secrets["GROQ_API_KEY"]
+openai.base_url = "https://api.groq.com/openai/v1"
+client = instructor.from_openai(openai)
 
 # --- Header ---
 st.title("🧠 AI Assistant")
@@ -73,7 +78,6 @@ def call_groq_api(feature, text, model, word_limit=100):
     elif feature == "Medical Term Explainer":
         prompt = f"Explain this medical report in simple, layman terms. Be clear and patient-friendly:\n\n{text}"
     elif feature == "Structured Info Extractor":
-        # fallback in case instructor is not used
         prompt = f"Extract the name and age from the following sentence and return it in JSON format like {{\"name\": string, \"age\": int}}:\n\n{text}"
     else:
         prompt = text  # fallback
@@ -89,11 +93,6 @@ def call_groq_api(feature, text, model, word_limit=100):
     response = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload)
     response.raise_for_status()
     return response.json()["choices"][0]["message"]["content"]
-
-# --- Setup instructor client with Groq API ---
-openai.api_key = st.secrets["GROQ_API_KEY"]
-openai.base_url = "https://api.groq.com/openai/v1"  # override for Groq endpoint
-client = instructor.from_openai(openai)
 
 # --- Main Action ---
 if run_button:
