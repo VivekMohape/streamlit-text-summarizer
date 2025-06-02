@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import instructor
 from pydantic import BaseModel
+import json
 
 # --- CONFIG ---
 st.set_page_config(page_title="AI Assistant", layout="centered")
@@ -16,7 +17,7 @@ if "feature" not in st.session_state:
 model_map = {
     "LLaMA 3 (8B) 🧠": "llama3-8b-8192",
     "LLaMA 3 (70B) 🚀": "llama3-70b-8192",
-    "Gemma2 (9B) 🩺": "gemma2-9b-it"
+    "Gemma2 (9B) 🦩": "gemma2-9b-it"
 }
 
 # --- Pydantic Schema for Structured Output ---
@@ -71,7 +72,7 @@ def call_groq_api(feature, text, model, word_limit=100):
     elif feature == "Medical Term Explainer":
         prompt = f"Explain this medical report in simple, layman terms. Be clear and patient-friendly:\n\n{text}"
     elif feature == "Structured Info Extractor":
-        prompt = f"Extract the name and age from the following sentence in JSON format: {{\"name\": string, \"age\": int}}\n\n{text}"
+        prompt = f"Extract the name and age from the following sentence and return it in JSON format like {\"name\": string, \"age\": int}:\n\n{text}"
     else:
         prompt = text  # fallback
 
@@ -95,11 +96,13 @@ if run_button:
         with st.spinner(f"Running {feature}..."):
             try:
                 if feature == "Structured Info Extractor":
-                    # Parse JSON response manually
-                    import json
                     raw_output = call_groq_api(feature, text_input, "llama3-8b-8192")
                     try:
-                        parsed = json.loads(raw_output)
+                        cleaned = raw_output.strip()
+                        if "```" in cleaned:
+                            cleaned = cleaned.split("```")[-2] if "```json" in cleaned else cleaned
+                        cleaned = cleaned.replace("```json", "").replace("```", "").strip()
+                        parsed = json.loads(cleaned)
                         structured = UserInfo(**parsed)
                         st.session_state.output = structured.model_dump()
                     except Exception as parse_error:
