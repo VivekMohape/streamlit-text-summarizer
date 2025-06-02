@@ -3,7 +3,7 @@ import requests
 import instructor
 from pydantic import BaseModel
 import json
-import openai
+from openai import OpenAI
 
 # --- CONFIG ---
 st.set_page_config(page_title="AI Assistant", layout="centered")
@@ -27,9 +27,11 @@ class UserInfo(BaseModel):
     age: int
 
 # --- Instructor Client Setup ---
-openai.api_key = st.secrets["GROQ_API_KEY"]
-openai.base_url = "https://api.groq.com/openai/v1"
-client = instructor.from_openai(openai)
+groq_client = OpenAI(
+    api_key=st.secrets["GROQ_API_KEY"],
+    base_url="https://api.groq.com/openai/v1"
+)
+client = instructor.from_openai(groq_client)
 
 # --- Header ---
 st.title("🧠 AI Assistant")
