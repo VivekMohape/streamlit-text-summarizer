@@ -1,5 +1,8 @@
 import streamlit as st
 import requests
+import instructor
+from openai import OpenAI
+from pydantic import BaseModel
 
 # --- CONFIG ---
 st.set_page_config(page_title="AI Assistant", layout="centered")
@@ -17,12 +20,25 @@ model_map = {
     "Gemma2 (9B) 🩺": "gemma2-9b-it"
 }
 
+# --- Instructor Client Setup ---
+openai_client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+instructor_client = instructor.from_openai(openai_client)
+
+# --- Pydantic Model ---
+class UserInfo(BaseModel):
+    name: str
+    age: int
+
 # --- Header ---
 st.title("🧠 AI Assistant")
 st.markdown("Choose a feature below to get started:")
 
 # --- Feature Selector ---
-feature = st.radio("Choose a Feature", ["Text Summarizer", "Medical Term Explainer"], index=["Text Summarizer", "Medical Term Explainer"].index(st.session_state.feature))
+feature = st.radio(
+    "Choose a Feature",
+    ["Text Summarizer", "Medical Term Explainer", "Structured Info Extractor"],
+    index=["Text Summarizer", "Medical Term Explainer", "Structured Info Extractor"].index(st.session_state.feature)
+)
 st.session_state.feature = feature
 
 # --- Feature Hints ---
@@ -30,11 +46,14 @@ if feature == "Text Summarizer":
     st.info("This tool helps you summarize long articles, notes, or documents into key points.")
 elif feature == "Medical Term Explainer":
     st.info("Paste medical reports or test results, and the assistant will explain them in layman's terms.")
+elif feature == "Structured Info Extractor":
+    st.info("Provide sentences like 'John Doe is 30 years old.' to extract structured info.")
 
 # --- Shared Inputs ---
 text_input = st.text_area("Enter Text", placeholder="Paste your content here...", height=200)
-selected_model_name = st.selectbox("Select Model", list(model_map.keys()))
-selected_model = model_map[selected_model_name]
+if feature != "Structured Info Extractor":
+    selected_model_name = st.selectbox("Select Model", list(model_map.keys()))
+    selected_model = model_map[selected_model_name]
 
 # --- Optional Input ---
 summary_length = 100  # Default
@@ -75,13 +94,21 @@ if run_button:
     if not text_input.strip():
         st.warning("Please enter some text.")
     else:
-        with st.spinner(f"Running {feature} with {selected_model_name}..."):
+        with st.spinner(f"Running {feature}..."):
             try:
-                output = call_groq_api(feature, text_input, selected_model, summary_length)
-                st.session_state.output = output
+                if feature == "Structured Info Extractor":
+                    result = instructor_client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        response_model=UserInfo,
+                        messages=[{"role": "user", "content": text_input}]
+                    )
+                    st.session_state.output = result.model_dump()
+                else:
+                    output = call_groq_api(feature, text_input, selected_model, summary_length)
+                    st.session_state.output = output
                 st.success("✅ Done!")
             except Exception as e:
-                st.error(f"Groq API error: {e}")
+                st.error(f"API error: {e}")
 
 # --- Output ---
 if st.session_state.output:
