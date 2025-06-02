@@ -1,7 +1,6 @@
 import streamlit as st
 import requests
 import instructor
-from openai import OpenAI
 from pydantic import BaseModel
 
 # --- CONFIG ---
@@ -20,11 +19,7 @@ model_map = {
     "Gemma2 (9B) 🩺": "gemma2-9b-it"
 }
 
-# --- Instructor Client Setup ---
-openai_client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-instructor_client = instructor.from_openai(openai_client)
-
-# --- Pydantic Model ---
+# --- Pydantic Schema for Structured Output ---
 class UserInfo(BaseModel):
     name: str
     age: int
@@ -51,6 +46,7 @@ elif feature == "Structured Info Extractor":
 
 # --- Shared Inputs ---
 text_input = st.text_area("Enter Text", placeholder="Paste your content here...", height=200)
+
 if feature != "Structured Info Extractor":
     selected_model_name = st.selectbox("Select Model", list(model_map.keys()))
     selected_model = model_map[selected_model_name]
@@ -74,6 +70,8 @@ def call_groq_api(feature, text, model, word_limit=100):
         prompt = f"Summarize the following text in approximately {word_limit} words:\n\n{text}"
     elif feature == "Medical Term Explainer":
         prompt = f"Explain this medical report in simple, layman terms. Be clear and patient-friendly:\n\n{text}"
+    elif feature == "Structured Info Extractor":
+        prompt = f"Extract the name and age from the following sentence in JSON format: {{\"name\": string, \"age\": int}}\n\n{text}"
     else:
         prompt = text  # fallback
 
@@ -97,18 +95,22 @@ if run_button:
         with st.spinner(f"Running {feature}..."):
             try:
                 if feature == "Structured Info Extractor":
-                    result = instructor_client.chat.completions.create(
-                        model="gpt-4o-mini",
-                        response_model=UserInfo,
-                        messages=[{"role": "user", "content": text_input}]
-                    )
-                    st.session_state.output = result.model_dump()
+                    # Parse JSON response manually
+                    import json
+                    raw_output = call_groq_api(feature, text_input, "llama3-8b-8192")
+                    try:
+                        parsed = json.loads(raw_output)
+                        structured = UserInfo(**parsed)
+                        st.session_state.output = structured.model_dump()
+                    except Exception as parse_error:
+                        st.session_state.output = raw_output  # fallback to raw text
+                        st.warning("Could not parse structured output. Showing raw response.")
                 else:
                     output = call_groq_api(feature, text_input, selected_model, summary_length)
                     st.session_state.output = output
                 st.success("✅ Done!")
             except Exception as e:
-                st.error(f"API error: {e}")
+                st.error(f"Groq API error: {e}")
 
 # --- Output ---
 if st.session_state.output:
