@@ -3,6 +3,7 @@ import requests
 import instructor
 from pydantic import BaseModel
 import json
+import openai  # Added for instructor client
 
 # --- CONFIG ---
 st.set_page_config(page_title="AI Assistant", layout="centered")
@@ -72,7 +73,8 @@ def call_groq_api(feature, text, model, word_limit=100):
     elif feature == "Medical Term Explainer":
         prompt = f"Explain this medical report in simple, layman terms. Be clear and patient-friendly:\n\n{text}"
     elif feature == "Structured Info Extractor":
-        prompt = f"Extract the name and age from the following sentence and return it in JSON format like {\"name\": string, \"age\": int}:\n\n{text}"
+        # fallback in case instructor is not used
+        prompt = f"Extract the name and age from the following sentence and return it in JSON format like {{\"name\": string, \"age\": int}}:\n\n{text}"
     else:
         prompt = text  # fallback
 
@@ -88,6 +90,11 @@ def call_groq_api(feature, text, model, word_limit=100):
     response.raise_for_status()
     return response.json()["choices"][0]["message"]["content"]
 
+# --- Setup instructor client with Groq API ---
+openai.api_key = st.secrets["GROQ_API_KEY"]
+openai.base_url = "https://api.groq.com/openai/v1"  # override for Groq endpoint
+client = instructor.from_openai(openai)
+
 # --- Main Action ---
 if run_button:
     if not text_input.strip():
@@ -96,18 +103,19 @@ if run_button:
         with st.spinner(f"Running {feature}..."):
             try:
                 if feature == "Structured Info Extractor":
-                    raw_output = call_groq_api(feature, text_input, "llama3-8b-8192")
                     try:
-                        cleaned = raw_output.strip()
-                        if "```" in cleaned:
-                            cleaned = cleaned.split("```")[-2] if "```json" in cleaned else cleaned
-                        cleaned = cleaned.replace("```json", "").replace("```", "").strip()
-                        parsed = json.loads(cleaned)
-                        structured = UserInfo(**parsed)
+                        structured = client.chat.completions.create(
+                            model="llama3-8b-8192",
+                            response_model=UserInfo,
+                            messages=[
+                                {"role": "system", "content": "You are an extractor that converts sentences into structured data."},
+                                {"role": "user", "content": text_input}
+                            ]
+                        )
                         st.session_state.output = structured.model_dump()
                     except Exception as parse_error:
-                        st.session_state.output = raw_output  # fallback to raw text
-                        st.warning("Could not parse structured output. Showing raw response.")
+                        st.session_state.output = f"❌ Parsing failed: {parse_error}"
+                        st.warning("Could not parse structured output using instructor. Showing error message.")
                 else:
                     output = call_groq_api(feature, text_input, selected_model, summary_length)
                     st.session_state.output = output
