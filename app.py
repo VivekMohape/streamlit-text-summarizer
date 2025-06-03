@@ -16,9 +16,9 @@ if "feature" not in st.session_state:
 
 # --- Model Mapping ---
 model_map = {
-    "LLaMA 3 (8B) 🧠": "llama3-8b-8192",
+    "LLaMA 3 (8B) 🚀": "llama3-8b-8192",
     "LLaMA 3 (70B) 🚀": "llama3-70b-8192",
-    "Gemma2 (9B) 🦩": "gemma2-9b-it"
+    "Gemma2 (9B) 🚀": "gemma2-9b-it"
 }
 
 # --- Pydantic Schema for Structured Output ---
@@ -34,7 +34,7 @@ groq_client = OpenAI(
 client = instructor.from_openai(groq_client)
 
 # --- Header ---
-st.title("🧠 AI Assistant")
+st.title(" AI Assistant")
 st.markdown("Choose a feature below to get started:")
 
 # --- Feature Selector ---
